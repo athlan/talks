@@ -1,0 +1,69 @@
+@import url(http://fonts.googleapis.com/css?family=Lato);
+@import url(http://fonts.googleapis.com/css?family=Roboto+Condensed);
+
+body {
+  background: #001217;
+  background-color: #001217;
+  
+  
+  background: #000000; /* Old browsers */
+  background: -moz-linear-gradient(top,  #000000 0%, #2d2d2d 83%, #494949 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#000000), color-stop(83%,#2d2d2d), color-stop(100%,#494949)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top,  #000000 0%,#2d2d2d 83%,#494949 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top,  #000000 0%,#2d2d2d 83%,#494949 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top,  #000000 0%,#2d2d2d 83%,#494949 100%); /* IE10+ */
+  background: linear-gradient(to bottom,  #000000 0%,#2d2d2d 83%,#494949 100%); /* W3C */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#494949',GradientType=0 ); /* IE6-9 */
+}
+
+big { font-size: 150% !important; }
+
+.color-red { color: #FF9494; }
+.color-yellow { color: #FFF894; }
+.color-green { color: #DDFF94; }
+
+.reveal,
+.reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+  font-family: 'Lato', sans-serif;
+}
+
+.reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+  text-transform: none;
+}
+
+a .greyed {
+  /*color: #0E3D5E;*/
+  opacity: 0.3;
+}
+
+.reveal ul > li, .reveal ol > li {
+  margin: 15px 0;
+}
+
+section.slide-intro h1 {
+  font-size: 2.3em;
+  margin-bottom: 50px;
+  line-height: 130%;
+}
+
+section.slide-intro h1, section.slide-intro h3 {
+  text-shadow:
+    black 5px 5px 50px,
+    black -5px 5px 50px,
+    black 5px -5px 50px,
+    black -5px -5px 50px;
+}
+
+section.about .avatar {
+  width: 20%;
+  height: 20%;
+  display: block;
+  margin: 20px auto;
+  
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  border-radius: 50%;
+  border-width: 0;
+
+  box-shadow: 0 5px 10px 4px rgba(0,0,0,.3);
+}

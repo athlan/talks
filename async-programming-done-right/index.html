@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Asynchronous programming done right - Piotr Pelczar</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/moon.css" id="theme">
+		<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.css">
+		<link rel="stylesheet" href="assets/style.css" id="theme2">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section class="slide-intro" data-background="assets/img/intro2.jpg">
+					<h1>Asynchronous programming<br />done right.</h1>
+					<h3>Without race conditions ..ions ..io on ..ns ditions.</h3>
+					<p>
+						<small>by <a href="http://athlan.pl">Piotr Pelczar (Athlan)</a></small>
+					</p>
+				</section>
+        <section class="slide-intro" data-background="assets/img/intro.jpg">
+				</section>
+				<section class="about">
+					<h2>About me</h2>
+          
+          <img src="assets/img/av.jpg" class="avatar" />
+          
+          <p>Piotr Pelczar</p>
+          
+					<ul>
+            <li class="fragment" data-fragment-index="0">Freelancer for 8yrs</li>
+            <li class="fragment" data-fragment-index="0">PHP, Node.js, Java/Groovy</li>
+            <li class="fragment" data-fragment-index="0">Zend Certified Engineer</li>
+            <li class="fragment" data-fragment-index="1">IPIJ, Startups</li>
+          </ul>
+				</section>
+				<section class="about">
+					<h2>Stay in touch</h2>
+          
+          <img src="assets/img/av.jpg" class="avatar" />
+          
+					<ul>
+            <li><a href="http://athlan.pl">athlan.pl</a></li>
+            <li><a href="mailto:me@athlan.pl">me@athlan.pl</a></li>
+            <li><a href="http://www.facebook.com/piotr.pelczar"><span class="greyed">facebook.com</span>/piotr.pelczar</a></li>
+            <li><a href="https://github.com/athlan"><span class="greyed">github.com</span>/athlan</a></li>
+            <li><a href="http://www.slideshare.net/piotrpelczar"><span class="greyed">slideshare.net</span>/piotrpelczar</a></li>
+            <li><a href="http://linkedin.com/in/ppelczar"><span class="greyed">linkedin.com/in</span>/ppelczar</a></li>
+          </ul>
+				</section>
+        
+				<section>
+					<h2>Asynchronous programming</h2>
+					<p>
+						Asynchronous actions are actions executed in a non-blocking scheme, allowing the main program flow to continue processing.
+					</p>
+				</section>
+        
+				<section>
+					<h2>How software lives in hardware?</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <ul>
+                <li>Operating systems are process based</li>
+                <li>Each process has assigned processor, registers, memory</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <img src="assets/img/thread2.jpg" style="width: 300px;" />
+            </div>
+          </div>
+				</section>
+        
+				<section>
+					<h2>How software lives in hardware?</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <ul>
+                <li>Process paralelism using threads (thread pools)</li>
+                <li>Switching processor over processes/threads causes <span class="color-red">context switching</span></li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <img src="assets/img/thread.jpg" style="width: 300px;" />
+            </div>
+          </div>
+				</section>
+        
+				<section>
+          <p><big>1. context switching = <span class="color-red">wasting time</span></big></p>
+				</section>
+        
+				<section>
+					<h2>Sync programming</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <p>In trivial, sequential approach</p>
+              <ul>
+                <li>Each operation is executed sequentially: <br /><br /> O(t) > O(t+1)</li>
+                <li>if O(t) stucks, O(t+1) waits...</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <img src="assets/img/sync-sequence.jpg" style="width: 300px;" />
+            </div>
+          </div>
+				</section>
+        
+				<section>
+					<h2>Sync programming</h2>
+          
+          <img src="assets/img/sync-operations.gif" style="width: 300px;" />
+				</section>
+        
+				<section>
+          <p><big>This is cool, software flow is predictible<br />But <span class="color-red">not</span> in high throughput I/O</big></p>
+          <p>I/O costs because of waiting time...</p>
+				</section>
+        
+				<section>
+					<h2>High throughput I/O</h2>
+          
+          <p>High throughput I/O <span class="color-red">doesn't</span> mean:</p>
+          <ul>
+            <li>Memory operations</li>
+            <li>Fast single-thread computing</li>
+          </ul>
+				</section>
+        
+				<section>
+					<h2>High throughput I/O</h2>
+          
+          <p>High throughput I/O <span class="color-green">means</span>:</p>
+          <ul>
+            <li>HTTP requests</li>
+            <li>Database connections</li>
+            <li>Queue system dispatching</li>
+            <li>HDD operations</li>
+          </ul>
+				</section>
+        
+				<section>
+          <p><big>2. Avoid I/O blocking</big></p>
+				</section>
+        
+				<section>
+          <p><big>2. Avoid I/O blocking</big></p>
+          <img src="assets/img/avoid-blocking.gif" style="width: 100%;" />
+				</section>
+        
+        
+				<section>
+					<h2>Single-threaded, event loop model</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <p>Imagine a man, who has a task:</p>
+              <ul>
+                <li>Walk around</li>
+                <li>When bucket is full of water, just pour another bucket</li>
+                <li>Go to next bucket</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <img src="assets/img/single-threaded-event-loop.gif" style="width: 100%;" />
+            </div>
+          </div>
+          <p>Connections, files, etc. in OS are registered as file descriptors, wchich can be checked, if data buffer (in/out) is ready.</p>
+				</section>
+        
+        
+				<section class="stack">
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						In async programming, results appears in no sequences
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+operation1(); // will output "operation1 finished."
+operation2(); // will output "operation2 finished."
+operation3(); // will output "operation3 finished."
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						<code>operation1()</code> would be
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var amqp = require("amqp")
+var eventbus = amqp.createConnection();
+console.log("AMQP connecting...");
+
+eventbus.on("ready", function() {
+    console.log("AMQP connected...");
+
+    callback();
+    return;
+});
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						<code>operation2()</code> would be
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var redis = require("redis")
+var conn = redis.createClient(port, host, options);
+console.log("Redis connecting...");
+
+conn.auth(pass, function(err) {
+    if(err)
+        console.log("Redis failed...");
+    else
+        console.log("Redis connected...");
+    
+    callback();
+    return;
+});
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						<code>operation3()</code> would be
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var mongojs = require("mongojs");
+
+console.log("Mongo connecting...");
+var conn = mongojs.connect(connectionString); // blocking operation
+console.log("Mongo connected...");
+
+callback();
+return;
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						Expectations?
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+AMQP connecting...  // operation1()
+AMQP connected...   // operation1()
+Redis connecting... // operation2()
+Redis failed...     // operation2()
+Mongo connecting... // operation3(), blocking
+Mongo connected...  // operation3()
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						Expectations?
+					</p>
+          
+          <img src="assets/img/false-meme2.jpg" style="width: 80%;" />
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+					<p>
+						The result:
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+AMQP connecting...  // operation1()
+Redis connecting... // operation2()
+Mongo connecting... // operation3(), blocking
+Mongo connected...  // operation3()
+Redis failed...     // operation2()
+AMQP connected...   // operation1()
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>There is <span class="color-yellow">no sequences</span></h2>
+          <img src="assets/img/magic.gif" style="width: 50%;" />
+				</section>
+				</section>
+        
+				<section class="stack">
+				<section>
+					<h2>So... what functions returns?</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+            
+            You can perform future tasks in function, so what will be returned?
+            
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function my_function() {
+    operation1();
+    operation2();
+    operation3();
+
+    return "value123";
+}
+					</code></pre>
+          
+            <p class="fragment">
+                <code>value123</code> will be returned,<br />just after blocking code, <span class="color-yellow">without waiting</span> for non-blocking.
+            </p>
+            
+            </div>
+            <div class="col-md-6">
+              <img src="assets/img/function-return.gif" style="width: 100%;" class="fragment" />
+            </div>
+          </div>
+				</section>
+        
+				<section>
+					<h2>Assume: Functions does <span class="color-red">NOT</span> returns values</h2>
+					<p>
+						The function block is executed immedietally from top to bottom. You cannot rely to return value, because it is useless.
+					</p>
+				</section>
+				</section>
+
+				<section class="stack">
+				<section>
+					<h2>Callbacks</h2>
+					<p>
+						Callback is the <span class="color-yellow">reference to function</span>.
+					</p>
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var callbackFunction = function(result) {
+    console.log("Result: %s", result)
+}
+					</code></pre>
+          
+					<p class="fragment">
+            When operation is done, the callback function is executed.
+					</p>
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+callbackFunction("test1") // "Result: test1" will be printed out
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Callbacks</h2>
+					<p>
+						If <code>callbackFunction</code> is a variable (value = reference),<br /> so can be passed it via function argument.
+					</p>
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var callbackFunction = function() { ... }
+someOtherFunction(callbackFunction);
+					</code></pre>
+          
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function someOtherFunction(callback) {
+    callback(); // execute function from argument
+}
+					</code></pre>
+				</section>
+        
+				<section>
+					<h2>Callbacks</h2>
+					<p>
+						Functions can be defined as anonymous (closures)
+					</p>
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function someOtherFunction(callback) {
+    var arg1 = "test";
+    callback(arg1); // execute function from argument
+}
+					</code></pre>
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+someOtherFunction(function(arg1) {
+    console.log('done... %s', arg1);
+})
+					</code></pre>
+          
+				</section>
+        
+				<section>
+					<h2>Callbacks can be nested</h2>
+					<p>
+						Nesting callbacks makes code unreadeable:
+					</p>
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var amqp = require('amqp');
+
+var connection = amqp.createConnection();
+
+connection.on('ready', function() {
+    connection.exchange("ex1", function(exchange) {
+        connection.queue('queue1', function(q) {
+            q.bind(exchange, 'r1');
+
+            q.subscribe(function(json, headers, info, m) {
+                console.log("msg: " + JSON.stringify(json));
+            });
+        });
+    });
+});
+					</code></pre>
+          
+				</section>
+        
+				<section>
+					<h2>Callbacks can be nested</h2>
+					<p>
+						Nesting callbacks makes code unreadeable:
+					</p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var amqp = require('amqp');
+
+var connection = amqp.createConnection();
+
+connection.on('ready', function() {
+    connection.exchange("ex1", function(exchange) {
+        connection.queue('queue1', function(q) {
+            q.bind(exchange, 'r1');
+
+            q.subscribe(function(json, headers, info, m) {
+                console.log("msg: " + JSON.stringify(json));
+                
+                table.update(select, data, function() {
+                    table.find(select, function(err, rows) {
+                        // inserted rows...
+                    }
+                });
+            });
+        });
+    });
+});
+					</code></pre>
+          
+				</section>
+				</section>
+
+        <section>
+          <h2>Asynchronous control flows</h2>
+          <ul>
+            <li>Promise design pattern</li>
+            <li>Libraries that manages callbacks references</li>
+          </ul>
+        </section>
+        
+        <section>
+        <section>
+          <h2>Promise design pattern</h2>
+          
+          <ol>
+              <li>Client fires function that will return <span class="color-yellow">result in the future</span><br /><small>in the future, so it is a promise</small></li>
+              <li>Function <span class="color-green">returns promise object immedietaly</span><br /><small>before non-blocking operations</small></li>
+              <li>Client registers callbacks</li>
+              <li>Callbacks will be fired in the future, when task is done</li>
+          </ol>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var resultPromise = loader.loadData(sourceFile)
+
+resultPromise(function success(data) {
+    // this function will be called while operation will succeed
+}, function error(err) {
+    // on fail
+})
+					</code></pre>
+        </section>
+        <section>
+          <h2>Promise design pattern</h2>
+          
+          <ol>
+              <li>Create <code>deferred</code> object</li>
+              <li>Return <code>def.promise</code></li>
+              <li>Call <code>resolve()</code> or <code>reject()</code></li>
+          </ol>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var loadData = function(sourceFile) {
+    var def = deferred()
+      , proc = process.spawn('java', ['-jar', 'loadData.jar', sourceFile])
+    
+    var commandProcessBuff = null
+      , commandProcessBuffError = null;
+    
+    proc.stdout.on('data', function (data) { commandProcessBuff += data })
+    proc.stderr.on('data', function (data) { commandProcessBuffError += data })
+
+    proc.on('close', function (code) {
+        if(null !== commandProcessBuffError)
+            def.reject(commandProcessBuffError)
+        else
+            def.resolve(commandProcessBuff)
+    })
+    
+    return def.promise
+}
+					</code></pre>
+        </section>
+        <section>
+          <h2>Promise design pattern</h2>
+          <img src="assets/img/promise.jpg" style="width: 30%;" />
+        </section>
+        </section>
+        
+				<section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Provides control flows like:
+					</p>
+          
+          <ul>
+              <li>Sequences (series)</li>
+              <li>Waterfalls (sequences with parameters passing)</li>
+              <li>Parallel (with limit)</li>
+              <li>Some/every conditions</li>
+              <li>While/until</li>
+              <li>Queue</li>
+          </ul>
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Series
+					</p>
+          
+          <img src="assets/img/async-depending-code.gif" style="width: 70%;" />
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Series
+					</p>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+async.series([
+    function(callback) {
+        // operation1
+    },
+    function(callback) {
+        // operation2
+    },
+    function(callback) {
+        // operation3
+    }
+], function() {
+    console.log('all operations done')
+})
+					</code></pre>
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Parallel
+					</p>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+async.parallel([
+    function(callback) {
+        // operation1
+    },
+    function(callback) {
+        // operation2
+    },
+    function(callback) {
+        // operation3
+    }
+], function() {
+    console.log('all operations done')
+})
+					</code></pre>
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Parallel limit
+					</p>
+          
+          <img src="assets/img/async-multiple-tasks-error.gif" style="width: 70%;" />
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Parallel limit
+					</p>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var tasks = [
+    function(callback) {
+        // operation1
+    },
+    function(callback) {
+        // operation2
+    },
+    // ...
+]
+
+async.parallelLimit(tasks, 2, function() {
+    console.log('all operations done')
+})
+					</code></pre>
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Waterfall
+					</p>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+async.waterfall([
+    function(callback) {
+        // operation1
+        callback(null, arg1, arg2)
+    },
+    function(arg1, arg2, callback) {
+        // operation2
+        callback(null, foo, bar)
+    },
+    function(foo, bar, callback) {
+        // operation3
+    }
+], function() {
+    console.log('all operations done')
+})
+					</code></pre>
+				</section>
+				<section>
+					<h2>Async Node.js library</h2>
+					<p>
+              Whilst
+					</p>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+async.doWhilst(
+    function(done) {
+        // operation1
+        done(null, arg1, arg2)
+    },
+    function() {
+        return pages < limit
+    }
+], function() {
+    console.log('done')
+})
+					</code></pre>
+				</section>
+				</section>
+
+				<section>
+					<h2>Asynchronous programming traps</h2>
+					<p>
+						Dealing with callbacks may be tricky. Keep your code clean.
+					</p>
+				</section>
+
+				<section>
+				<section>
+					<h2>Unnamed callbacks</h2>
+          
+          <p>
+              Keep your code clean, don't name callback function <code>callback</code>
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(callback) {
+    return callback;
+}
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Unnamed callbacks</h2>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(callback) {
+    
+    doAnotherThing(function(callback2) {
+    
+        doYetAnotherThing(function(callback3) {
+            
+            return callback();
+        })
+    })
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Unnamed callbacks</h2>
+          
+          <p>
+              Instead of this, name your callbacks
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+    
+    doAnotherThing(function(doneFetchingFromApi) {
+    
+        doYetAnotherThing(function(doneWritingToDatabase) {
+            
+            return done();
+        })
+    })
+}
+					</code></pre>
+				</section>
+				</section>
+        
+				<section>
+				<section>
+					<h2>Double callbacks</h2>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+
+    doAnotherThing(function (err) {
+    
+        if (err) done(err);
+        done(null, result);
+      
+    });
+  
+}
+					</code></pre>
+          
+          <p>Callback is fired twice!</p>
+				</section>
+
+				<section>
+					<h2>Double callbacks</h2>
+          
+          <p>
+              Fix: Always prepend callback execution with <code>return</code> statement.
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+
+    doAnotherThing(function (err) {
+    
+        if (err)
+            return done(err);
+        
+        return done(null, result);
+      
+    });
+}
+					</code></pre>
+          
+          <p>Normally, return ends function execution, why do not keep this rule while async.</p>
+				</section>
+				<section>
+					<h2>Double callbacks</h2>
+          
+          <p>
+              Double callbacks are very hard to debug.
+          </p>
+					
+          <p>
+              The callback wrapper can be written and execute it only once.
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+setTimeout(function() {
+        done('a')
+}, 200)
+setTimeout(function() {
+        done('b')
+}, 500)
+					</code></pre>
+				</section>
+				<section>
+					<h2>Double callbacks</h2>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var CallbackOnce = function(callback) {
+        this.isFired = false
+        this.callback = callback
+}
+ 
+CallbackOnce.prototype.create = function() {
+        var delegate = this
+ 
+        return function() {
+                if(delegate.isFired)
+                        return
+ 
+                delegate.isFired = true
+                delegate.callback.apply(null, arguments)
+        }
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Double callbacks</h2>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+obj1 = new CallbackOnce(done)
+
+// decorate callback
+safeDone = obj1.create() // safeDone() is proxy function that passes arguments
+ 
+setTimeout(function() {
+        safeDone('a') // safe now...
+}, 200)
+setTimeout(function() {
+        safeDone('b') // safe now...
+}, 500)
+					</code></pre>
+				</section>
+				</section>
+        
+				<section>
+				<section>
+					<h2>Unexpected callbacks</h2>
+          
+          <p>
+              Never fire callback until task is done.
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+
+    doAnotherThing(function () {
+        
+        if (condition) {
+            var result = null
+            // prepare result...
+            
+            return done(result);
+        }
+        
+        return done(null);
+        
+    });
+}
+					</code></pre>
+          
+          <p>The ending return will be fired even <code>if</code> condition pass.</p>
+				</section>
+				<section>
+					<h2>Unexpected callbacks</h2>
+          
+          <p>
+              Never fire callback until task is done.
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+
+    doAnotherThing(function () {
+        
+        if (condition) {
+            var result = null
+            // prepare result...
+            
+            return done(result);
+        }
+        else {
+            return done(null);
+        }
+        
+    });
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Unexpected callbacks</h2>
+          
+          <p>
+              Never use callback in <code>try</code> clause!
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function (callback) {
+    another_function(function (err, some_data) {
+        if (err)
+            return callback(err);
+        
+        try {
+            callback(null, JSON.parse(some_data)); // error here
+        } catch(err) {
+            callback(new Error(some_data + ' is not a valid JSON'));
+        }
+    });
+}
+					</code></pre>
+          <p>
+              If <span class="color-red">callback throws an exception</span>, then it is executed exactly twice!
+          </p>
+					
+				</section>
+				<section>
+					<h2>Unexpected callbacks</h2>
+          
+          <p>
+              Never use callback in <code>try</code> clause!
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function (callback) {
+    another_function(function (err, some_data) {
+        if (err)
+            return callback(err);
+        
+        try {
+            var parsed = JSON.parse(some_data)
+        } catch(err) {
+            return callback(new Error(some_data + ' is not a valid JSON'));
+        }
+        
+        callback(null, parsed);
+    });
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Unexpected callbacks</h2>
+          
+          <p>
+              Never use callback in <code>try</code> clause!
+          </p>
+					
+          <img src="assets/img/async-race-condition.gif" style="width: 40%" />
+					
+				</section>
+				</section>
+        
+				<section>
+				<section>
+					<h2>Take care of events</h2>
+          
+          <p>
+              Read docs carefully. Really.
+          </p>
+					
+          <pre class="fragment"><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+
+    var proc = process.spawn('java', ['-jar', 'loadData.jar', sourceFile])
+    var procBuff = '';
+    
+    proc.stdout.on('data', function (data) {
+        procBuff += data;
+    });
+    
+    // WAT?!
+    proc.stderr.on('data', function (data) {
+        done(new Error("An error occured: " + data))
+    });
+    
+    proc.on('close', function (code) {
+        done(null, procBuff);
+    }
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Take care of events</h2>
+          
+          <p>
+              Read docs carefully. Really.
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function doSomething(done) {
+
+    var proc = process.spawn('java', ['-jar', 'loadData.jar', sourceFile])
+    var procBuff = '';
+    var procBuffError = '';
+
+    proc.stdout.on('data', function (data) {
+        procBuff += data;
+    });
+
+    proc.stderr.on('data', function (data) {
+        proc += data;
+    });
+
+    proc.on('close', function (code) {
+        if(code !== 0) {
+            return done(new Error("An error occured: " + procBuffError));
+        }
+        else {
+            return done(null, procBuff)
+        }
+    }
+
+}
+					</code></pre>
+				</section>
+				</section>
+
+				<section>
+				<section>
+					<h2>Unreadable and logs</h2>
+					<ul>
+						<li>Keep in mind, that asynchronous logs will interweave</li>
+						<li>There are not sequenced</li>
+						<li>Or there will be same log strings</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Unexpected callbacks</h2>
+          
+          <p>
+              Asynchronous logs will interweave
+          </p>
+					
+          <img src="assets/img/async-logs.gif" style="width: 70%" />
+					
+				</section>
+				<section>
+					<h2>Unreadable and logs</h2>
+          
+          <p>
+              Logs without use context are useless...
+          </p>
+					
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function getResults(keyword, done) {
+    http.request(url, function(response) {
+        console.log('Fetching from API')
+        
+        response.on('error', function(err) {
+            console.log('API error')
+        })
+    });
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Unreadable and logs</h2>
+          
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+function getResults(keyword, done) {
+    var logContext = { keyword: keyword }
+    
+    http.request(url, function(response) {
+        console.log(logContext, 'Fetching from API')
+        
+        response.on('error', function(err) {
+            console.log(logContext, 'API error')
+        })
+    });
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Unreadable and logs</h2>
+					<ul>
+						<li>Centralize your logs - use logstash</li>
+						<li>And make them searcheable - Elasticsearch + Kibana</li>
+					</ul>
+          
+          <img src="assets/img/kibana-screen.png" style="width: 70%;" />
+				</section>
+				</section>
+
+				<section>
+				<section>
+					<h2>Too many opened background-tasks</h2>
+					<p>
+              While running parallel in order to satisfy first-better algorithm, others should be aborted
+          </p>
+				</section>
+				<section>
+					<h2>Too many opened background-tasks</h2>
+          <p>
+              Provide cancellation API:
+          </p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var events = require('events')
+
+function getResults(keyword) {
+    var def = deferred()
+    var eventbus = new events.EventEmitter()
+    
+    var req = http.request(url, function(response) {
+        var err = null
+          , content = null
+        
+        res.on('data', function(chunk) {
+            content += chunk;
+        });
+        response.on('close', function() {
+            if(err)
+                return def.reject(err)
+            else
+                return def.resolve(content)
+        })
+        response.on('error', function(err) {
+            err += err
+        })
+    });
+    
+    eventbus.on('abort', function() {
+        req.abort()
+    })
+    
+    return {
+        result: def.promise,
+        events: eventbus
+    }
+}
+					</code></pre>
+				</section>
+				<section>
+					<h2>Too many opened background-tasks</h2>
+          <p>
+              Provide cancellation API:
+          </p>
+          <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+var response = getResults('test')
+
+response.result(function success() {
+    // ...
+}, function error() {
+    // ...
+})
+
+// if we need
+response.events.emit('abort')
+					</code></pre>
+				</section>
+				</section>
+
+				<section>
+					<p>
+						Everything runs in parallel <span class="color-red">except your code</span>.
+					</p>
+          
+					<p>
+            &nbsp;
+          </p>
+          
+					<p>
+						When currently code is running, (not waiting for I/O descriptors) <span class="color-yellow">whole event loop is blocked</span>.
+					</p>
+				</section>
+        
+				<section>
+				<section data-background="assets/img/intro2.jpg">
+					<h1>THE END</h1>
+					<h3>by Piotr Pelczar</h3>
+				</section>
+
+				<section>
+					<h1>Q&amp;A</h1>
+          
+          <img src="assets/img/questions.gif" style="width: 70%" />
+					<h4>by Piotr Pelczar</h4>
+				</section>
+				</section>
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'concave', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
